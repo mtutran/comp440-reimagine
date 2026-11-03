@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Part 3 Search Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one vertical pipeline of steps; each step is a row with What / How / Why, joined by a spine. */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --fg: #1b2428;
+  --muted: #5a6a70;
+  --line: #d3dde0;
+  --claude: #1f6f8b;
+  --claude-soft: #e3f0f5;
+  --student: #a3570f;
+  --student-soft: #fbeedd;
+  --code-bg: #eef2f3;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12181b; --surface: #1a2226; --fg: #e4ecee; --muted: #9aabb1; --line: #2e3b40;
+    --claude: #6cbcd8; --claude-soft: #1b3440; --student: #f0a65c; --student-soft: #3a2a18;
+    --code-bg: #0f1416; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12181b; --surface: #1a2226; --fg: #e4ecee; --muted: #9aabb1; --line: #2e3b40;
+  --claude: #6cbcd8; --claude-soft: #1b3440; --student: #f0a65c; --student-soft: #3a2a18;
+  --code-bg: #0f1416; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); }
+.wrap {
+  max-width: 980px; margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1; }
+.lede { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: .9rem; color: var(--muted); }
+.meta b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 .72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 9px; border-radius: 999px;
+}
+.chip.claude { background: var(--claude-soft); color: var(--claude); }
+.chip.student { background: var(--student-soft); color: var(--student); }
+
+ol.flow { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 44px 1fr; gap: 0 16px; }
+.rail { display: flex; flex-direction: column; align-items: center; }
+.num {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 .95rem var(--display); color: var(--surface); background: var(--claude); flex: none;
+}
+.step.student-turn .num { background: var(--student); }
+.rail::after { content: ""; flex: 1; width: 2px; background: var(--line); margin: 4px 0; }
+.step:last-child .rail::after { display: none; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 18px; min-width: 0;
+}
+.card header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.card h2 { font-size: 1.15rem; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
+.cols > div { min-width: 0; }
+.label { font: 600 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.cols p { margin: 0; }
+code, pre { font-family: var(--mono); font-size: .82rem; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg); border-radius: 8px; padding: 12px 14px; margin: 12px 0 0;
+  overflow-x: auto; line-height: 1.45;
+}
+.branch {
+  margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px;
+  font-size: .92rem; color: var(--muted);
+}
+.branch b { color: var(--fg); }
+.inside { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.inside h3 { font: 700 1rem var(--display); margin: 0 0 4px; }
+.inside > p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
+.sub { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sub li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0 10px; }
+.sub .k { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font: 600 .75rem var(--mono); background: var(--claude-soft); color: var(--claude); }
+.sub b { display: block; }
+.sub span.why { color: var(--muted); font-size: .9rem; }
+.rules { margin-top: 36px; }
+.rules h2 { font-size: 1.2rem; margin-bottom: 10px; }
+.rules ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 70ch; }
+@media (max-width: 640px) {
+  .cols { grid-template-columns: 1fr; }
+  .step { grid-template-columns: 32px 1fr; gap: 0 10px; }
+  .num { width: 30px; height: 30px; font-size: .85rem; }
+}
+</style>
+</head>
+<body>
+
+<style>
+.loop { display: inline-flex; align-items: center; gap: 6px; font: 600 .72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); padding: 4px 8px; border-radius: 999px; }
+</style>
+
+<div class="wrap">
+  <h1>Part 3: Your Own Searches, step by step</h1>
+  <p class="lede">What Claude does during Part 3 of the retrieval activity, how it does each step, and why the step is there. In Part 3 the student describes movies they know in their own words, without the title, and sees whether TF-IDF finds them.</p>
+  <div class="meta"><span><b>Time:</b> about 7 minutes</span><span><b>Starts after:</b> commit <code>Part 2 done</code></span><span><b>Ends with:</b> commit <code>Part 3 done</code></span></div>
+
+  <div class="legend">
+    <span class="chip claude">Claude acts</span>
+    <span class="chip student">Student decides</span>
+  </div>
+
+  <ol class="flow">
+    <li class="step student-turn">
+      <div class="rail"><span class="num">1</span></div>
+      <article class="card">
+        <header><h2>Ask for a question</h2><span class="chip student">Student decides</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Asks for a question: a movie they know, described in their own words without its title. If they ask what kinds to try, Claude gives only the README's three: "a detail, the plot retold, something vague".</p></div>
+          <div><div class="label">Why</div><p>The questions are the student's. Claude never suggests, completes, rewords or fixes the spelling of one, so the results reflect how a real person would ask.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">2</span></div>
+      <article class="card">
+        <header><h2>Run search.py on it</h2><span class="chip claude">Claude acts</span><span class="loop">Repeats for 3 questions</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Runs <code>uv run python search.py '&lt;their question&gt;'</code> exactly as typed, quoted so the shell passes it through unchanged. TF-IDF is the default method.</p></div>
+          <div><div class="label">Why</div><p>It ranks all 4,309 movies by how many weighted words their plot summaries share with the question, using the Part 1 settings.</p></div>
+        </div>
+        <div class="inside">
+          <h3>Inside search.py</h3>
+          <p>What the script does in one run, in order. It uses code from <code>retrieval.py</code> and scikit-learn.</p>
+          <ol class="sub">
+            <li><span class="k">a</span><div><b>Clean up the question.</b> Collapses extra spaces and prints it back (the first 25 words). An empty question stops here. <span class="why">The student sees exactly what was searched.</span></div></li>
+            <li><span class="k">b</span><div><b>Build the TF-IDF matrix.</b> Loads the 4,309 plot summaries and the settings in <code>tfidf_settings.py</code>, then builds one row of word weights per movie, as in Part 2. <span class="why">The question is compared against the same model the student configured.</span></div></li>
+            <li><span class="k">c</span><div><b>Turn the question into a row.</b> <code>vectorizer.transform</code> weights the question's words with the same vocabulary. Stop words (if removed) and words no summary uses drop out. <span class="why">The question and the movies have to be lists of numbers over the same words to be compared.</span></div></li>
+            <li><span class="k">d</span><div><b>Score every movie.</b> The cosine similarity of the question's row with each movie's row: how closely the two point the same way. The rows already have length 1, so this is a dot product. <span class="why">One score from 0 (no word in common) to 1 (most alike) puts all movies on one scale.</span></div></li>
+            <li><span class="k">e</span><div><b>Rank and cut.</b> Sorts the scores high to low, drops movies that scored 0, and keeps the top 10. Ties keep the order of <code>data/movies.jsonl</code>. <span class="why">Movies with no shared word have no meaningful order, so they aren't listed.</span></div></li>
+            <li><span class="k">f</span><div><b>List the matched words.</b> For each result, the question's words that are also in that summary, the one that adds most to the score first. <span class="why">The student can see why each movie came up.</span></div></li>
+            <li><span class="k">g</span><div><b>List the ignored words.</b> Prints which of the question's words counted for nothing: stop words, or words not in the vocabulary. <span class="why">It shows what the settings threw away from the question.</span></div></li>
+          </ol>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">3</span></div>
+      <article class="card">
+        <header><h2>Paste the output in full</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Copies the output exactly into a code block, then asks for the next question until there are three. Claude does not say which results are right or where their movie landed.</p></div>
+          <div><div class="label">Why</div><p>The student's terminal hides tool output. Judging the results is their job, not Claude's.</p></div>
+        </div>
+<pre>Question: a heist on a train
+
+TF-IDF, top 10:
+   1. 0.209  Dog Day Afternoon (1975)   matched: heist, on
+   2. 0.196  Baby Driver (2017)   matched: heist
+   3. 0.188  Reindeer Games (2000)   matched: heist</pre>
+        <p class="label" style="margin-top:6px">Example from README.md, starting settings</p>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">4</span></div>
+      <article class="card">
+        <header><h2>Record the questions</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Writes the three questions into the slot "Your questions, as you typed them" in <code>WRITEUP.md</code>, one per line, word for word, typos included.</p></div>
+          <div><div class="label">Why</div><p>The writeup keeps a record of exactly what was searched, so it can be compared to the results.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step student-turn">
+      <div class="rail"><span class="num">5</span></div>
+      <article class="card">
+        <header><h2>Ask what TF-IDF got right and wrong</h2><span class="chip student">Student decides</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Asks the slot's question: did the movies you meant come up, and what did TF-IDF get right and wrong? A sentence or two is enough.</p></div>
+          <div><div class="label">Why</div><p>Reading the matched and ignored words against their own question is how they learn what keyword search can and can't do.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">6</span></div>
+      <article class="card">
+        <header><h2>Write their answer into WRITEUP.md</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Replaces the slot's <code>XXXX</code> with their words exactly and shows the slot as it now reads. Tidying is offered as a question, never done silently.</p></div>
+          <div><div class="label">Why</div><p>The writeup is graded on the student's own words.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">7</span></div>
+      <article class="card">
+        <header><h2>Save the part to GitHub</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Runs <code>python3 dump_transcript.py</code>, stages <code>WRITEUP.md</code> and <code>tfidf_settings.py</code> by name, commits <code>Part 3 done</code> and pushes. A hook blocks the commit if a Part 3 slot still reads <code>XXXX</code>.</p></div>
+          <div><div class="label">Why</div><p>Progress is saved even if class ends, and the commit marks where the next session starts (Part 4).</p></div>
+        </div>
+      </article>
+    </li>
+  </ol>
+
+  <section class="rules">
+    <h2>Rules that hold across the part</h2>
+    <ul>
+      <li>Claude never gives an example question or changes one.</li>
+      <li>Claude never says a result looks good or right, and gives no caveat in Part 3.</li>
+      <li>Explaining TF-IDF, the score, or the matched words is always allowed when the student asks.</li>
+      <li>Three questions is enough in class; more are welcome at home.</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>

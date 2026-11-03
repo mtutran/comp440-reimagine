@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Part 2 Top Terms Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one vertical pipeline of steps; each step is a row with What / How / Why, joined by a spine. */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --fg: #1b2428;
+  --muted: #5a6a70;
+  --line: #d3dde0;
+  --claude: #1f6f8b;
+  --claude-soft: #e3f0f5;
+  --student: #a3570f;
+  --student-soft: #fbeedd;
+  --code-bg: #eef2f3;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12181b; --surface: #1a2226; --fg: #e4ecee; --muted: #9aabb1; --line: #2e3b40;
+    --claude: #6cbcd8; --claude-soft: #1b3440; --student: #f0a65c; --student-soft: #3a2a18;
+    --code-bg: #0f1416; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12181b; --surface: #1a2226; --fg: #e4ecee; --muted: #9aabb1; --line: #2e3b40;
+  --claude: #6cbcd8; --claude-soft: #1b3440; --student: #f0a65c; --student-soft: #3a2a18;
+  --code-bg: #0f1416; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); }
+.wrap {
+  max-width: 980px; margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1; }
+.lede { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: .9rem; color: var(--muted); }
+.meta b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 .72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 9px; border-radius: 999px;
+}
+.chip.claude { background: var(--claude-soft); color: var(--claude); }
+.chip.student { background: var(--student-soft); color: var(--student); }
+
+ol.flow { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 44px 1fr; gap: 0 16px; }
+.rail { display: flex; flex-direction: column; align-items: center; }
+.num {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 .95rem var(--display); color: var(--surface); background: var(--claude); flex: none;
+}
+.step.student-turn .num { background: var(--student); }
+.rail::after { content: ""; flex: 1; width: 2px; background: var(--line); margin: 4px 0; }
+.step:last-child .rail::after { display: none; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 18px; min-width: 0;
+}
+.card header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.card h2 { font-size: 1.15rem; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
+.cols > div { min-width: 0; }
+.label { font: 600 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.cols p { margin: 0; }
+code, pre { font-family: var(--mono); font-size: .82rem; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg); border-radius: 8px; padding: 12px 14px; margin: 12px 0 0;
+  overflow-x: auto; line-height: 1.45;
+}
+.branch {
+  margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px;
+  font-size: .92rem; color: var(--muted);
+}
+.branch b { color: var(--fg); }
+.inside { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.inside h3 { font: 700 1rem var(--display); margin: 0 0 4px; }
+.inside > p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
+.sub { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sub li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0 10px; }
+.sub .k { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font: 600 .75rem var(--mono); background: var(--claude-soft); color: var(--claude); }
+.sub b { display: block; }
+.sub span.why { color: var(--muted); font-size: .9rem; }
+.rules { margin-top: 36px; }
+.rules h2 { font-size: 1.2rem; margin-bottom: 10px; }
+.rules ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 70ch; }
+@media (max-width: 640px) {
+  .cols { grid-template-columns: 1fr; }
+  .step { grid-template-columns: 32px 1fr; gap: 0 10px; }
+  .num { width: 30px; height: 30px; font-size: .85rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Part 2: Top Terms, step by step</h1>
+  <p class="lede">What Claude does during Part 2 of the retrieval activity, how it does each step, and why the step is there. Part 2 shows which words TF-IDF treats as most distinctive in a movie's plot summary, using the settings the student chose in Part 1.</p>
+  <div class="meta"><span><b>Time:</b> about 6 minutes</span><span><b>Starts after:</b> commit <code>Part 1 done</code></span><span><b>Ends with:</b> commit <code>Part 2 done</code></span></div>
+
+  <div class="legend">
+    <span class="chip claude">Claude acts</span>
+    <span class="chip student">Student decides</span>
+  </div>
+
+  <ol class="flow">
+    <li class="step">
+      <div class="rail"><span class="num">1</span></div>
+      <article class="card">
+        <header><h2>Check the tools are installed</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Reads the log of the setup job that ran in the background, looking for uv's line <code>Installed 38 packages</code> or <code>Checked 38 packages</code>. If the log is missing, runs <code>uv sync</code>.</p></div>
+          <div><div class="label">Why</div><p><code>top_terms.py</code> needs scikit-learn. The embedding model can still be downloading; Part 2 doesn't need it.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step student-turn">
+      <div class="rail"><span class="num">2</span></div>
+      <article class="card">
+        <header><h2>Ask for two movies</h2><span class="chip student">Student decides</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Asks one question: which two movies do you know well? The movies rated in HW1 are in the 4,309-movie collection.</p></div>
+          <div><div class="label">Why</div><p>The student can only judge whether a word is "distinctive" for a movie they actually know. Two fits in class; more is fine at home.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">3</span></div>
+      <article class="card">
+        <header><h2>Run top_terms.py for each movie</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Runs <code>uv run python top_terms.py "&lt;title&gt;"</code> with the student's own words. The script builds TF-IDF over every plot summary with the Part 1 settings, finds the title (exact, then without the year, then any title containing it), and sorts that movie's row of weights.</p></div>
+          <div><div class="label">Why</div><p>It turns the abstract formula into something concrete: the 15 words this model weighs most for a movie the student knows, and how often each appears here and across all summaries.</p></div>
+        </div>
+        <div class="branch"><b>If the title matches no movie or several:</b> Claude pastes what the script printed (close matches, or the list) and asks which one they meant. It does not guess.</div>
+        <div class="inside">
+          <h3>Inside top_terms.py</h3>
+          <p>What the script does in one run, in order. It uses code from <code>retrieval.py</code> and scikit-learn.</p>
+          <ol class="sub">
+            <li><span class="k">a</span><div><b>Load the collection.</b> Reads <code>data/movies.jsonl</code>: 4,309 movies, each with its plot summary from TMDB. <span class="why">IDF compares one summary to all the others, so it needs the whole collection.</span></div></li>
+            <li><span class="k">b</span><div><b>Read the settings.</b> Loads <code>REMOVE_STOP_WORDS</code>, <code>MIN_MOVIES</code> and <code>REPEATS_COUNT_LESS</code> from <code>tfidf_settings.py</code> and checks each value is allowed. <span class="why">These are the student's Part 1 choices; search and evaluate read the same file.</span></div></li>
+            <li><span class="k">c</span><div><b>Build the TF-IDF matrix.</b> scikit-learn's <code>TfidfVectorizer</code> lowercases every summary, splits it into words, applies the three settings (<code>stop_words</code>, <code>min_df</code>, <code>sublinear_tf</code>), then <code>fit_transform</code> makes one row per movie and one column per word. A word's weight goes up the more often it appears in this summary (TF) and the fewer summaries contain it (IDF). Each row is scaled to length 1. <span class="why">This is the model the student configured, built fresh on every run.</span></div></li>
+            <li><span class="k">d</span><div><b>Find the movie.</b> Tries the exact title, then the title without its year (so "the matrix" finds "Matrix, The (1999)"), then any title that contains the words. None or several matches stops here. <span class="why">Students type titles loosely; this finds one movie without guessing.</span></div></li>
+            <li><span class="k">e</span><div><b>Rank its words.</b> Takes that movie's row, sorts its weights from high to low, and keeps the top 15. For each word it also counts <i>count here</i> (times in this summary) and <i>movies</i> (how many summaries have it). <span class="why">The two counts show TF and IDF separately, so the student can see why a word ranks high.</span></div></li>
+            <li><span class="k">f</span><div><b>Print.</b> The table, a note on the columns, the full plot summary and the settings used. <span class="why">The summary lets the student check each word against the text it came from.</span></div></li>
+          </ol>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">4</span></div>
+      <article class="card">
+        <header><h2>Paste the output in full</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Copies the output exactly into a code block: the 15 words, the column notes, the plot summary and the settings line. Nothing shortened or relabeled.</p></div>
+          <div><div class="label">Why</div><p>The student's terminal hides tool output, so the paste is the only way they see it. Exact copies keep their reading honest.</p></div>
+        </div>
+<pre>Groundhog Day (1993): the 15 words with the highest TF-IDF weight in its plot summary.
+
+     word               weight  count here  movies
+  1. mawkish             0.267           1       1
+  2. groundhog           0.267           1       1
+  3. punxsutawney        0.267           1       1
+  4. day                 0.263           2     162
+  5. weatherman          0.255           1       2</pre>
+        <p class="label" style="margin-top:6px">Example from README.md, starting settings</p>
+      </article>
+    </li>
+
+    <li class="step student-turn">
+      <div class="rail"><span class="num">5</span></div>
+      <article class="card">
+        <header><h2>Ask what the words get right and wrong</h2><span class="chip student">Student decides</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Asks the slot's question: what do the top terms get right and wrong about what makes each movie distinctive? A sentence or two is enough. If asked why a word is on top, Claude asks what they think first.</p></div>
+          <div><div class="label">Why</div><p>The interpretation is the learning. Explaining first would hand them the answer, and the writeup is graded on their own words.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">6</span></div>
+      <article class="card">
+        <header><h2>Write their answer into WRITEUP.md</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Reads <code>WRITEUP.md</code>, replaces the Part 2 slot's <code>XXXX</code> with their words exactly, and shows the slot as it now reads. Tidying is offered as a question, never done silently.</p></div>
+          <div><div class="label">Why</div><p>Claude is the typist, not the author. Nothing is added or made stronger or weaker.</p></div>
+        </div>
+      </article>
+    </li>
+
+    <li class="step">
+      <div class="rail"><span class="num">7</span></div>
+      <article class="card">
+        <header><h2>Save the part to GitHub</h2><span class="chip claude">Claude acts</span></header>
+        <div class="cols">
+          <div><div class="label">How</div><p>Runs <code>python3 dump_transcript.py</code>, stages <code>WRITEUP.md</code> and <code>tfidf_settings.py</code> by name, commits <code>Part 2 done</code> and pushes. A hook blocks the commit if a Part 2 slot still reads <code>XXXX</code>.</p></div>
+          <div><div class="label">Why</div><p>Progress is saved even if class ends mid-activity, and the commit marks where the next session should pick up (Part 3).</p></div>
+        </div>
+      </article>
+    </li>
+  </ol>
+
+  <section class="rules">
+    <h2>Rules that hold across the part</h2>
+    <ul>
+      <li>Claude never says which words are "right" or whether an answer looks good.</li>
+      <li>No caveat is added in Part 2, to keep it short.</li>
+      <li>Explaining TF-IDF, the columns, or the code is always allowed when the student asks.</li>
+      <li>One step per turn, one question at the end of each message.</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>
